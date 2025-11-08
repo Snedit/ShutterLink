@@ -1,0 +1,46 @@
+ package com.shutterlink.auth_service.controllers;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.shutterlink.auth_service.DTO.AuthResponseDTO;
+import com.shutterlink.auth_service.DTO.ChangePasswordDTO;
+import com.shutterlink.auth_service.DTO.LoginRequestDTO;
+import com.shutterlink.auth_service.DTO.RegisterRequestDTO;
+import com.shutterlink.auth_service.DTO.TokenRefreshRequestDTO;
+import com.shutterlink.auth_service.DTO.TokenValidationResponseDTO;
+import com.shutterlink.auth_service.services.AuthService;
+
+@RestController
+@RequestMapping("/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponseDTO> register(@RequestBody RegisterRequestDTO req) {
+        return ResponseEntity.ok(authService.register(req));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody LoginRequestDTO req) {
+        return ResponseEntity.ok(authService.login(req));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponseDTO> refreshToken(@RequestBody TokenRefreshRequestDTO req) {
+        return ResponseEntity.ok(authService.refreshToken(req));
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<TokenValidationResponseDTO> validateToken(@RequestHeader("Authorization") String tokenHeader) {
+        return ResponseEntity.ok(authService.validateToken(tokenHeader));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordDTO req) {
+        authService.changePassword(req);
+        return ResponseEntity.ok("Password updated successfully");
+    }
+}
