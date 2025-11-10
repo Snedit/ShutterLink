@@ -1,5 +1,7 @@
 package com.shutterlink.auth_service.DTO;
 
+import com.shutterlink.auth_service.entity.OTP;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

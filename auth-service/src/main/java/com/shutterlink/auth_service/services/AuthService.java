@@ -3,10 +3,15 @@ package com.shutterlink.auth_service.services;
  
 import com.shutterlink.auth_service.DTO.*;
 import com.shutterlink.auth_service.entity.Auth;
+import com.shutterlink.auth_service.entity.OTP;
 import com.shutterlink.auth_service.repository.AuthRepository;
+import com.shutterlink.auth_service.repository.OtpRepository;
 import com.shutterlink.auth_service.utils.JwtUtil;
+import com.shutterlink.auth_service.utils.OtpUtil;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +21,10 @@ public class AuthService {
 
     private final AuthRepository authRepository;
     private final JwtUtil jwtUtil;
+    private final OtpUtil otpUtil;
+    @Autowired
+    private final OtpRepository otpRepository;
+    
 
     public AuthResponseDTO register(RegisterRequestDTO req) {
          if(authRepository.existsByEmail(req.getEmail()))
@@ -28,7 +37,10 @@ public class AuthService {
          user.setEmail(req.getEmail());
          user.setPassword(BCrypt.hashpw( req.getPassword() , BCrypt.gensalt()));
          authRepository.save(user);
-
+         OTP newOtp = otpUtil.generateOtp(req.getEmail());
+        // save the otp in db
+         otpRepository.save(newOtp);
+         
            String accessToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
