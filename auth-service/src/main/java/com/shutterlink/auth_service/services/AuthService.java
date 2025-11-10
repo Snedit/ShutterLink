@@ -36,11 +36,12 @@ public class AuthService {
          user.setUsername(req.getUsername());
          user.setEmail(req.getEmail());
          user.setPassword(BCrypt.hashpw( req.getPassword() , BCrypt.gensalt()));
+         user.setFullname(req.getFullname());
          authRepository.save(user);
          OTP newOtp = otpUtil.generateOtp(req.getEmail());
         // save the otp in db
          otpRepository.save(newOtp);
-         
+
            String accessToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
