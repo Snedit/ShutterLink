@@ -9,6 +9,7 @@ import com.shutterlink.auth_service.repository.OtpRepository;
 import com.shutterlink.auth_service.utils.JwtUtil;
 import com.shutterlink.auth_service.utils.OtpUtil;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,7 @@ public class AuthService {
     private final OtpRepository otpRepository;
     
 
-    public AuthResponseDTO register(RegisterRequestDTO req) {
+    public AuthResponseDTO register(@Valid RegisterRequestDTO req) {
          if(authRepository.existsByEmail(req.getEmail()))
          {
             throw new RuntimeException("Email already exists");
@@ -85,18 +86,6 @@ public class AuthService {
    
     }
 
-   public void changePassword(ChangePasswordDTO req) {
-        // // You’d typically fetch the user from SecurityContext
-        // // For now, assume current user’s email is known
-        // String currentEmail = "user@example.com";
-        // Auth user = authRepository.findByEmail(currentEmail)
-        //         .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // if (!BCrypt.checkpw(req.getOldPassword(), user.getPassword()))
-        //     throw new RuntimeException("Incorrect old password");
-
-        // user.setPassword(BCrypt.hashpw(req.getNewPassword(), BCrypt.gensalt()));
-        // authRepository.save(user);
-    }
+   
 
 }

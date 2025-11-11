@@ -1,6 +1,7 @@
  package com.shutterlink.auth_service.controllers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.shutterlink.auth_service.DTO.AuthResponseDTO;
@@ -11,15 +12,18 @@ import com.shutterlink.auth_service.DTO.TokenRefreshRequestDTO;
 import com.shutterlink.auth_service.DTO.TokenValidationResponseDTO;
 import com.shutterlink.auth_service.services.AuthService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/auth")
+@Validated
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponseDTO> register(@RequestBody RegisterRequestDTO req) {
+    public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterRequestDTO req) {
         return ResponseEntity.ok(authService.register(req));
     }
 
@@ -38,9 +42,5 @@ public class AuthController {
         return ResponseEntity.ok(authService.validateToken(tokenHeader));
     }
 
-    @PostMapping("/change-password")
-    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordDTO req) {
-        authService.changePassword(req);
-        return ResponseEntity.ok("Password updated successfully");
-    }
+   
 }
