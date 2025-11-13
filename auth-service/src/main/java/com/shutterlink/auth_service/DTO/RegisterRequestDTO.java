@@ -15,5 +15,8 @@ public class RegisterRequestDTO {
 
     @NotBlank
     private String password;
-
+    
+    @NotBlank
+    private String fullname;
+    
 }

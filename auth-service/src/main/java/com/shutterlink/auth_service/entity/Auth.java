@@ -11,12 +11,12 @@ import java.util.UUID;
 @Entity
 @Data
 @NoArgsConstructor
-@Table(name="users")
+@Table(name="temp_users")
 public class Auth {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID authId;
+    private UUID id;
 
     @NotNull
     @Column(unique = true, nullable = false)
@@ -28,6 +28,9 @@ public class Auth {
 
     @NotNull
     private String password;
+
+    @NotNull
+    private String fullname;
 
     public enum Role {
         USER, ADMIN
@@ -52,5 +55,5 @@ protected void onUpdate() {
     updatedAt = LocalDateTime.now();
 }
 
- 
+private boolean isVerified = false; 
 }

@@ -3,14 +3,25 @@ package com.shutterlink.auth_service.services;
  
 import com.shutterlink.auth_service.DTO.*;
 import com.shutterlink.auth_service.entity.Auth;
+import com.shutterlink.auth_service.entity.OTP;
 import com.shutterlink.auth_service.repository.AuthRepository;
+import com.shutterlink.auth_service.repository.OtpRepository;
+import com.shutterlink.auth_service.utils.EmailUtil;
 import com.shutterlink.auth_service.utils.JwtUtil;
+import com.shutterlink.auth_service.utils.OtpUtil;
 
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
+
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -18,8 +29,13 @@ public class AuthService {
 
     private final AuthRepository authRepository;
     private final JwtUtil jwtUtil;
-
-    public AuthResponseDTO register(RegisterRequestDTO req) {
+    private final OtpUtil otpUtil;
+    private final EmailUtil emailUtil;
+    @Autowired
+    private final OtpRepository otpRepository;
+    
+    @Transactional
+    public AuthResponseDTO register(@Valid RegisterRequestDTO req) {
          if(authRepository.existsByEmail(req.getEmail()))
          {
             throw new RuntimeException("Email already exists");
@@ -29,9 +45,16 @@ public class AuthService {
          user.setUsername(req.getUsername());
          user.setEmail(req.getEmail());
          user.setPassword(BCrypt.hashpw( req.getPassword() , BCrypt.gensalt()));
+         user.setFullname(req.getFullname());
          authRepository.save(user);
+         OTP newOtp = otpUtil.generateOtp(req.getEmail());
+        // save the otp in db
+        otpRepository.save(newOtp);
 
-           String accessToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        emailUtil.sendOtpMail(user.getEmail(), newOtp.getOtp());
+
+
+        String accessToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
         return new AuthResponseDTO(accessToken, refreshToken, user.getUsername(), user.getEmail(), user.getRole().name()); 
@@ -70,22 +93,73 @@ public class AuthService {
         Auth user = authRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Invalid token"));
 
-        return new TokenValidationResponseDTO(true, user.getAuthId().toString(), user.getUsername(), user.getRole().name());
+        return new TokenValidationResponseDTO(true, user.getId().toString(), user.getUsername(), user.getRole().name());
    
     }
 
-   public void changePassword(ChangePasswordDTO req) {
-        // You’d typically fetch the user from SecurityContext
-        // For now, assume current user’s email is known
-        String currentEmail = "user@example.com";
-        Auth user = authRepository.findByEmail(currentEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    @Transactional
+    public boolean verifyOtp(VerifYOtp verify) {
 
-        if (!BCrypt.checkpw(req.getOldPassword(), user.getPassword()))
-            throw new RuntimeException("Incorrect old password");
+        String email  = verify.getEmail();
+        String otp  = verify.getOTP();
+        
+        if(! authRepository.existsByEmail(email) || !otpRepository.existsByEmail(email))
+            throw new RuntimeException("Invalid Email!");
+            Auth user = authRepository.findByEmail(email).orElse(null);
+            OTP otpInRepo = otpRepository.findByEmail(email).orElseThrow();
 
-        user.setPassword(BCrypt.hashpw(req.getNewPassword(), BCrypt.gensalt()));
-        authRepository.save(user);
+            if(otpInRepo.getOtp().equals(otp))
+            {   
+                System.out.println("OTP IN REPO : " + otpInRepo.getOtp());
+                System.out.println("OTP received : " + otp);
+
+                if(otpInRepo.getExpiration().isAfter(LocalDateTime.now()))    
+            {   
+                user.setVerified(true);
+                authRepository.save(user);
+                    return true;}
+                else
+                {
+            System.out.println("OTP has been expired!");
+                    return false;
+                }
+            }
+            else{
+                return false;
+            }
+
+        
+
+
     }
+
+  @Transactional
+public String resendOtp(String email) {
+    System.out.println(authRepository.findAll());
+    System.out.println("Received email : " + email);
+    Optional<Auth> optionalUser = authRepository.findByEmail(email);
+
+    if (optionalUser.isEmpty()) {
+        return "Register yourself first!";
+    }
+
+    Auth user = optionalUser.get();
+
+    if (user.isVerified()) {
+        return "Email has already been verified!";
+    }
+
+    OTP newOtp = otpUtil.generateOtp(user.getEmail());
+    OTP otp = otpRepository.findByEmail(email).orElse(new OTP());
+    otp.setEmail(email);
+    otp.setOtp(newOtp.getOtp());
+    otp.setExpiration(newOtp.getExpiration());
+    otpRepository.save(otp);
+
+    emailUtil.sendOtpMail(email, newOtp.getOtp());
+    return "A new OTP has been sent to your email.";
+}
+
+   
 
 }
