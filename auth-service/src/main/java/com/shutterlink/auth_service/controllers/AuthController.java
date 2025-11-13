@@ -37,7 +37,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.refreshToken(req));
     }
 
-    @GetMapping("/validate")
+    @GetMapping("/me")
     public ResponseEntity<TokenValidationResponseDTO> validateToken(@RequestHeader("Authorization") String tokenHeader) {
         return ResponseEntity.ok(authService.validateToken(tokenHeader));
     }
