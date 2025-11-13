@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class OtpUtil {
     
 
-    private final int expirySeconds  = 180; 
+    private final int expirySeconds  = 60*10; 
     private final int otpLength  = 5; 
     
 
@@ -37,6 +37,6 @@ public class OtpUtil {
         generatedOTP.setOtp(otp);
         return generatedOTP;
     }
-
+    
     
 }

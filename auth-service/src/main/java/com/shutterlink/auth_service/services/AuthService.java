@@ -12,7 +12,12 @@ import com.shutterlink.auth_service.utils.OtpUtil;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
+
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -91,6 +96,69 @@ public class AuthService {
         return new TokenValidationResponseDTO(true, user.getId().toString(), user.getUsername(), user.getRole().name());
    
     }
+
+    @Transactional
+    public boolean verifyOtp(VerifYOtp verify) {
+
+        String email  = verify.getEmail();
+        String otp  = verify.getOTP();
+        
+        if(! authRepository.existsByEmail(email) || !otpRepository.existsByEmail(email))
+            throw new RuntimeException("Invalid Email!");
+            Auth user = authRepository.findByEmail(email).orElse(null);
+            OTP otpInRepo = otpRepository.findByEmail(email).orElseThrow();
+
+            if(otpInRepo.getOtp().equals(otp))
+            {   
+                System.out.println("OTP IN REPO : " + otpInRepo.getOtp());
+                System.out.println("OTP received : " + otp);
+
+                if(otpInRepo.getExpiration().isAfter(LocalDateTime.now()))    
+            {   
+                user.setVerified(true);
+                authRepository.save(user);
+                    return true;}
+                else
+                {
+            System.out.println("OTP has been expired!");
+                    return false;
+                }
+            }
+            else{
+                return false;
+            }
+
+        
+
+
+    }
+
+  @Transactional
+public String resendOtp(String email) {
+    System.out.println(authRepository.findAll());
+    System.out.println("Received email : " + email);
+    Optional<Auth> optionalUser = authRepository.findByEmail(email);
+
+    if (optionalUser.isEmpty()) {
+        return "Register yourself first!";
+    }
+
+    Auth user = optionalUser.get();
+
+    if (user.isVerified()) {
+        return "Email has already been verified!";
+    }
+
+    OTP newOtp = otpUtil.generateOtp(user.getEmail());
+    OTP otp = otpRepository.findByEmail(email).orElse(new OTP());
+    otp.setEmail(email);
+    otp.setOtp(newOtp.getOtp());
+    otp.setExpiration(newOtp.getExpiration());
+    otpRepository.save(otp);
+
+    emailUtil.sendOtpMail(email, newOtp.getOtp());
+    return "A new OTP has been sent to your email.";
+}
 
    
 
