@@ -14,10 +14,12 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +34,8 @@ public class AuthService {
     @Autowired
     private final OtpRepository otpRepository;
     
+    @Autowired
+    private final RedisTemplate<String, String> redisTemplate;
     @Transactional
     public AuthResponseDTO register(@Valid RegisterRequestDTO req) {
          if(authRepository.existsByEmail(req.getEmail()))
@@ -47,7 +51,11 @@ public class AuthService {
          authRepository.save(user);
          OTP newOtp = otpUtil.generateOtp(req.getEmail());
         // save the otp in db
-        otpRepository.save(newOtp);
+        String key = "OTP:"+user.getEmail(); 
+        redisTemplate.opsForValue().set(key, newOtp.getOtp(), Duration.ofMinutes(10));
+        // no need to save OTP in DB
+        // just use redis cache
+        // otpRepository.save(newOtp);
 
         emailUtil.sendOtpMail(user.getEmail(), newOtp.getOtp());
 
@@ -100,31 +108,54 @@ public class AuthService {
 
         String email  = verify.getEmail();
         String otp  = verify.getOTP();
+        Auth user = authRepository.findByEmail(email).orElse(null);
+        if(user  == null)
+        throw new RuntimeException("Wrong email for OTP!");
+        else if(user.isVerified())
+        throw new RuntimeException("User already verified!");
+
+        // DB logic
+        // if(! authRepository.existsByEmail(email) || !otpRepository.existsByEmail(email))
+        //     throw new RuntimeException("Invalid Email!");
+        //     OTP otpInRepo = otpRepository.findByEmail(email).orElseThrow();
+            
+        //     if(otpInRepo.getOtp().equals(otp))
+        //     {   
+        //         System.out.println("OTP IN REPO : " + otpInRepo.getOtp());
+        //         System.out.println("OTP received : " + otp);
+
+        //         if(otpInRepo.getExpiration().isAfter(LocalDateTime.now()))    
+        //     {   
+        //         user.setVerified(true);
+        //         authRepository.save(user);
+        //             return true;}
+        //         else
+        //         {
+        //     System.out.println("OTP has been expired!");
+        //             return false;
+        //         }
+        //     }
+        //     else{
+        //         return false;
+        //     }
+        // DB logic replaced by Redis!
+        String key = "OTP:" + verify.getEmail();
+        String cachedOtp  = redisTemplate.opsForValue().get(key);
+        if(cachedOtp == null)
+        {
+            throw new RuntimeException("OTP has been expired!");
+
+        }
+        if(!cachedOtp.equals(otp))
+        {
+            return false;
+        }
+        else{
+            user.setVerified(true);
+            redisTemplate.delete(key);
+            return true;
+        }
         
-        if(! authRepository.existsByEmail(email) || !otpRepository.existsByEmail(email))
-            throw new RuntimeException("Invalid Email!");
-            Auth user = authRepository.findByEmail(email).orElse(null);
-            OTP otpInRepo = otpRepository.findByEmail(email).orElseThrow();
-
-            if(otpInRepo.getOtp().equals(otp))
-            {   
-                System.out.println("OTP IN REPO : " + otpInRepo.getOtp());
-                System.out.println("OTP received : " + otp);
-
-                if(otpInRepo.getExpiration().isAfter(LocalDateTime.now()))    
-            {   
-                user.setVerified(true);
-                authRepository.save(user);
-                    return true;}
-                else
-                {
-            System.out.println("OTP has been expired!");
-                    return false;
-                }
-            }
-            else{
-                return false;
-            }
 
     }
 
@@ -143,15 +174,20 @@ public String resendOtp(String email) {
     if (user.isVerified()) {
         return "Email has already been verified!";
     }
+    String key  = "OTP:" + email;
+    String newOtp  = otpUtil.generateOtp(email).getOtp();
+    redisTemplate.opsForValue().set(key, newOtp, Duration.ofMinutes(10));
 
-    OTP newOtp = otpUtil.generateOtp(user.getEmail());
-    OTP otp = otpRepository.findByEmail(email).orElse(new OTP());
-    otp.setEmail(email);
-    otp.setOtp(newOtp.getOtp());
-    otp.setExpiration(newOtp.getExpiration());
-    otpRepository.save(otp);
 
-    emailUtil.sendOtpMail(email, newOtp.getOtp());
+    // old DB logic
+    // OTP newOtp = otpUtil.generateOtp(user.getEmail());
+    // OTP otp = otpRepository.findByEmail(email).orElse(new OTP());
+    // otp.setEmail(email);
+    // otp.setOtp(newOtp.getOtp());
+    // otp.setExpiration(newOtp.getExpiration());
+    // otpRepository.save(otp);
+
+    emailUtil.sendOtpMail(email, newOtp);
     return "A new OTP has been sent to your email.";
 }
 
