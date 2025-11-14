@@ -3,7 +3,6 @@ package com.shutterlink.auth_service.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.shutterlink.auth_service.entity.OTP;
-import java.util.List;
 import java.util.Optional;
 
 

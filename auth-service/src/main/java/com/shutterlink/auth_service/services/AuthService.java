@@ -12,10 +12,8 @@ import com.shutterlink.auth_service.utils.OtpUtil;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 
-import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -127,9 +125,6 @@ public class AuthService {
             else{
                 return false;
             }
-
-        
-
 
     }
 
