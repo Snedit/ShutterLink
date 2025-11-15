@@ -30,8 +30,10 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterRequestDTO req) {
+    //    System.out.println("Register endpoint called with email: " + req.getEmail());
         return ResponseEntity.ok(authService.register(req));
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO req) {

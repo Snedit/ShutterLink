@@ -107,7 +107,7 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
 
-        user.setPasswordHash(updateRequestDto.getPasswordHash());
+        // user.setPasswordHash(updateRequestDto.getPasswordHash());
         user.setUpdatedAt(LocalDateTime.now());
 
         User updatedUser = userRepository.save(user);

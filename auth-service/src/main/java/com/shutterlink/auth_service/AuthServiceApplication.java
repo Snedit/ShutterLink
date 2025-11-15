@@ -9,9 +9,8 @@ public class AuthServiceApplication {
 		SpringApplication.run(AuthServiceApplication.class, args);
 		
 			System.out.print("\007");
-			System.out.flush();
+			System.out.flush();  
 			System.out.println("You get this sound when the server restarts");
 	}
 
 }
-  
